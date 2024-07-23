@@ -92,34 +92,81 @@ export const addPost = async (req, res) => {
 };
 
 export const updatePost = async (req, res) => {
+  const id = req.params.id;
+  const { postData, postDetail } = req.body;
+
   try {
-    res.status(200).json();
+    const updatedPost = await prisma.post.update({
+      where: { id },
+      data: {
+        ...postData,
+        postDetail: {
+          upsert: {
+            create: postDetail,
+            update: postDetail,
+          },
+        },
+      },
+    });
+
+    res.status(200).json(updatedPost);
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: "Failed to update posts" });
+    res.status(500).json({ message: "Failed to update post" });
   }
 };
+
 
 export const deletePost = async (req, res) => {
   const id = req.params.id;
   const tokenUserId = req.userId;
 
   try {
+    // Validate ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Invalid Post ID" });
+    }
+
     const post = await prisma.post.findUnique({
       where: { id },
+      include: {
+        postDetail: true,
+        savedPosts: true,
+      },
     });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
 
     if (post.userId !== tokenUserId) {
       return res.status(403).json({ message: "Not Authorized!" });
     }
 
+    // Delete associated SavedPosts
+    if (post.savedPosts.length > 0) {
+      await prisma.savedPost.deleteMany({
+        where: { postId: id },
+      });
+    }
+
+    // Delete associated PostDetail
+    if (post.postDetail) {
+      await prisma.postDetail.delete({
+        where: { id: post.postDetail.id },
+      });
+    }
+
+    // Delete the Post
     await prisma.post.delete({
       where: { id },
     });
 
     res.status(200).json({ message: "Post deleted" });
   } catch (err) {
-    console.log(err);
+    console.error("Error deleting post:", err);
     res.status(500).json({ message: "Failed to delete post" });
   }
 };
+
+
