@@ -7,6 +7,7 @@ import testRoute from "./routes/test.route.js";
 import userRoute from "./routes/user.route.js";
 import chatRoute from "./routes/chat.route.js";
 import messageRoute from "./routes/message.route.js";
+import adminRoute from "./routes/admin.route.js";
 
 const app = express();
 
@@ -36,6 +37,10 @@ app.use("/api/chats", chatRoute);
 
 // Route for message-related operations
 app.use("/api/messages", messageRoute);
+
+
+// Route for admin-related operations
+app.use("/api/admin", adminRoute);
 
 // Starting the server on port 8800 and logging a message to the console
 app.listen(8800, () => {

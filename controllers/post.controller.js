@@ -1,3 +1,6 @@
+
+
+
 import prisma from "../lib/prisma.js";
 import jwt from "jsonwebtoken";
 
@@ -9,6 +12,7 @@ export const getPosts = async (req, res) => {
     // Fetching posts from the database based on the query parameters
     const posts = await prisma.post.findMany({
       where: {
+        approved: true, // Ensure only approved posts are fetched
         city: query.city || undefined,
         type: query.type || undefined,
         property: query.property || undefined,
@@ -29,7 +33,6 @@ export const getPosts = async (req, res) => {
   }
 };
 
-// Controller to get a single post by ID, including related details
 export const getPost = async (req, res) => {
   const id = req.params.id;
 
@@ -69,12 +72,18 @@ export const getPost = async (req, res) => {
           },
         });
 
-        // Sending the post details with the saved status
-        return res.status(200).json({ ...post, isSaved: saved ? true : false });
+        // Allow access to the post if the user is the owner or an admin
+        if (post.userId === payload.id || payload.role === "admin" || post.approved) {
+          return res.status(200).json({ ...post, isSaved: saved ? true : false });
+        } else {
+          return res.status(403).json({ message: "Not authorized to view this post" });
+        }
       });
-    } else {
-      // Sending the post details with saved status as false if no token is available
+    } else if (post.approved) {
+      // Allow access to approved posts without authentication
       return res.status(200).json({ ...post, isSaved: false });
+    } else {
+      return res.status(403).json({ message: "Not authorized to view this post" });
     }
   } catch (err) {
     // Logging the error and sending a failure response
@@ -82,6 +91,7 @@ export const getPost = async (req, res) => {
     res.status(500).json({ message: "Failed to get post" });
   }
 };
+
 
 // Controller to add a new post
 export const addPost = async (req, res) => {
@@ -94,6 +104,7 @@ export const addPost = async (req, res) => {
       data: {
         ...body.postData,
         userId: tokenUserId,
+        approved: false, // Set approved to false by default
         postDetail: {
           create: body.postDetail,
         },
@@ -195,4 +206,3 @@ export const deletePost = async (req, res) => {
     res.status(500).json({ message: "Failed to delete post" });
   }
 };
-
