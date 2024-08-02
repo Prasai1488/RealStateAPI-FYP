@@ -1,11 +1,15 @@
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcrypt";
 
+// api to get all users
 export const getUsers = async (req, res) => {
   try {
+    // get users from database
     const users = await prisma.user.findMany();
+    // return users
     res.status(200).json(users);
   } catch (err) {
+    // handle error
     console.log(err);
     res.status(500).json({ message: "Failed to get users!" });
   }
@@ -16,14 +20,25 @@ export const getUser = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true, // Ensure role is included
+        avatar: true,
+        createdAt: true,
+        // Add other fields as necessary
+      },
     });
+    if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
     res.status(200).json(user);
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Failed to get user!" });
   }
 };
-
 export const updateUser = async (req, res) => {
   const id = req.params.id;
   const tokenUserId = req.userId;

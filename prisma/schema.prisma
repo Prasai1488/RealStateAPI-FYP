@@ -25,6 +25,7 @@ model Post {
   userId     String      @db.ObjectId
   postDetail PostDetail?
   savedPosts SavedPost[]
+  approved   Boolean     @default(false) // Added the approved field
 }
 
 enum Type {
@@ -65,25 +66,26 @@ model SavedPost {
 }
 
 model User {
-  id         String      @id @default(auto()) @map("_id") @db.ObjectId
-  email      String      @unique
-  username   String      @unique
-  password   String
-  avatar     String?
-  createdAt  DateTime    @default(now())
-  posts      Post[]
-  savedPosts SavedPost[]
-  chats      Chat[]      @relation(fields: [chatIDs], references: [id])
-  chatIDs    String[]    @db.ObjectId
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  email        String         @unique
+  username     String         @unique
+  password     String
+  avatar       String?
+  createdAt    DateTime       @default(now())
+  posts        Post[]
+  savedPosts   SavedPost[]
+  chats        Chat[]         @relation(fields: [chatIDs], references: [id])
+  chatIDs      String[]       @db.ObjectId
+  notifications Notification[]
 }
 
 model Chat {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  users     User[]    @relation(fields: [userIDs], references: [id])
-  userIDs   String[]  @db.ObjectId
-  createdAt DateTime  @default(now())
-  seenBy    String[]  @db.ObjectId
-  messages  Message[]
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  users      User[]    @relation(fields: [userIDs], references: [id])
+  userIDs    String[]  @db.ObjectId
+  createdAt  DateTime  @default(now())
+  seenBy     String[]  @db.ObjectId
+  messages   Message[]
   lastMessage String?
 }
 
@@ -94,4 +96,14 @@ model Message {
   chat      Chat     @relation(fields: [chatId], references: [id])
   chatId    String   @db.ObjectId
   createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
 }

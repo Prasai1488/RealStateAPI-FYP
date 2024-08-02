@@ -7,46 +7,45 @@ const prisma = new PrismaClient();
 // Middleware to check if the user is an admin
 
 export const shouldBeAdmin = async (req, res, next) => {
-    const token = req.cookies.token;
-  
-    if (!token) {
-      console.log("No token provided");
-      return res.status(401).json({ message: "Not Authenticated!" });
-    }
-  
-    jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, payload) => {
-      if (err) {
-        console.log("Token verification failed:", err);
-        return res.status(403).json({ message: "Token is not Valid!" });
-      }
-  
-      try {
-        console.log("Token payload:", payload);
-        const userId = payload.id; // Use the string as is from the payload
-  
-        const user = await prisma.user.findUnique({
-          where: { id: userId }
-        });
-  
-        if (!user) {
-          console.log("User not found with ID:", userId);
-          return res.status(403).json({ message: "Not authorized!" });
-        }
-  
-        if (user.role !== "admin") {
-          console.log("User is not admin:", user.role);
-          return res.status(403).json({ message: "Not authorized!" });
-        }
-  
-        req.userId = user.id; // Set user ID in request object for further use
-        next();
-      } catch (error) {
-        console.log("Error finding user:", error);
-        return res.status(400).json({ message: "Invalid User ID!" });
-      }
-    });
-  };
+  const token = req.cookies.token;
 
+  if (!token) {
+    console.log("No token provided");
+    return res.status(401).json({ message: "Not Authenticated!" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, payload) => {
+    if (err) {
+      console.log("Token verification failed:", err);
+      return res.status(403).json({ message: "Token is not Valid!" });
+    }
+
+    try {
+      console.log("Token payload:", payload);
+      const userId = payload.id; // Use the string as is from the payload
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        console.log("User not found with ID:", userId);
+        return res.status(403).json({ message: "Not authorized!" });
+      }
+
+      if (user.username !== "admin") {
+        console.log("User is not admin:", user.username);
+        return res.status(403).json({ message: "Not authorized!" });
+      }
+
+      req.userId = user.id; // Set user ID in request object for further use
+      next();
+    } catch (error) {
+      console.log("Error finding user:", error);
+      return res.status(400).json({ message: "Invalid User ID!" });
+    }
+  });
+};
 
 
 
@@ -124,3 +123,6 @@ export const rejectPost = async (req, res) => {
       res.status(500).json({ error: "Server error" });
     }
   };
+
+  // delete a user 
+  
