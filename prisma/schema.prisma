@@ -40,18 +40,25 @@ enum Property {
   land
 }
 
+enum PropertyStatus {
+  Available
+  Booked
+  SoldOut
+}
+
 model PostDetail {
-  id         String  @id @default(auto()) @map("_id") @db.ObjectId
-  desc       String
-  utilities  String?
-  pet        String?
-  income     String?
-  size       Int?
-  school     Int?
-  bus        Int?
-  restaurant Int?
-  post       Post    @relation(fields: [postId], references: [id])
-  postId     String  @unique @db.ObjectId
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  desc           String
+  utilities      String?
+  pet            String?
+  income         String?
+  size           Int?
+  school         Int?
+  bus            Int?
+  restaurant     Int?
+  propertyStatus PropertyStatus @default(Available)
+  post           Post           @relation(fields: [postId], references: [id])
+  postId         String         @unique @db.ObjectId
 }
 
 model SavedPost {
@@ -107,3 +114,4 @@ model Notification {
 
   user      User     @relation(fields: [userId], references: [id])
 }
+
