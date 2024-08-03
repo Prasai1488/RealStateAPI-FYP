@@ -124,5 +124,132 @@ export const rejectPost = async (req, res) => {
     }
   };
 
-  // delete a user 
+
+  // Controller to delete a user and their related data
+export const deleteUser = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    // Step 1: Delete saved posts referencing the user's posts
+    const userPosts = await prisma.post.findMany({
+      where: { userId: id },
+      select: { id: true },
+    });
+
+    const userPostIds = userPosts.map(post => post.id);
+
+    await prisma.savedPost.deleteMany({
+      where: { postId: { in: userPostIds } },
+    });
+
+    // Step 2: Delete related saved posts for the user
+    await prisma.savedPost.deleteMany({
+      where: { userId: id },
+    });
+
+    // Step 3: Delete related PostDetail records
+    await prisma.postDetail.deleteMany({
+      where: { postId: { in: userPostIds } },
+    });
+
+    // Step 4: Delete related messages
+    const userChats = await prisma.chat.findMany({
+      where: {
+        userIDs: { has: id }
+      },
+      select: { id: true },
+    });
+
+    const chatIds = userChats.map(chat => chat.id);
+
+    await prisma.message.deleteMany({
+      where: { chatId: { in: chatIds } },
+    });
+
+    // Step 5: Delete related chats
+    await prisma.chat.deleteMany({
+      where: {
+        userIDs: { has: id }
+      },
+    });
+
+    // Step 6: Delete related posts
+    await prisma.post.deleteMany({
+      where: { userId: id },
+    });
+
+    // Step 7: Delete the user
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    res.status(200).json({ message: "User and their related data deleted" });
+  } catch (err) {
+    console.error("Error deleting user:", err);
+    res.status(500).json({ message: "Failed to delete user!" });
+  }
+};
   
+
+// Controller to delete a post by ID
+export const deletePost = async (req, res) => {
+  const id = req.params.id;
+  const tokenUserId = req.userId;
+
+  try {
+    // Validate the format of the post ID
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Invalid Post ID" });
+    }
+
+    // Fetching the post to be deleted, including its details and saved posts
+    const post = await prisma.post.findUnique({
+      where: { id },
+      include: {
+        postDetail: true,
+        savedPosts: true,
+      },
+    });
+
+    // If the post is not found, return a 404 response
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Fetch the user to check if they are admin
+    const user = await prisma.user.findUnique({
+      where: { id: tokenUserId },
+    });
+
+    // If the authenticated user is not the owner of the post and not an admin, return a 403 response
+    if (post.userId !== tokenUserId && user.username !== "admin") {
+      return res.status(403).json({ message: "Not Authorized!" });
+    }
+
+    // Delete associated saved posts if any
+    if (post.savedPosts.length > 0) {
+      await prisma.savedPost.deleteMany({
+        where: { postId: id },
+      });
+    }
+
+    // Delete associated post details if any
+    if (post.postDetail) {
+      await prisma.postDetail.delete({
+        where: { id: post.postDetail.id },
+      });
+    }
+
+    // Delete the post
+    await prisma.post.delete({
+      where: { id },
+    });
+
+    // Sending a success response indicating the post was deleted
+    res.status(200).json({ message: "Post deleted" });
+  } catch (err) {
+    // Logging the error and sending a failure response
+    console.error("Error deleting post:", err);
+    res.status(500).json({ message: "Failed to delete post" });
+  }
+};

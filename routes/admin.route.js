@@ -4,6 +4,8 @@ import {
   getAllUsersAndPosts,
   approvePost,
   rejectPost,
+  deleteUser,
+  deletePost,
 } from "../controllers/admin.controller.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 
@@ -18,5 +20,7 @@ router.use(shouldBeAdmin);
 router.get("/users", getAllUsersAndPosts);
 router.post("/approve-post/:postId", approvePost);
 router.post("/reject-post/:postId", rejectPost);
+router.delete('/delete-user/:id', deleteUser);
+router.delete('/delete-post/:id', deletePost);
 
 export default router;
