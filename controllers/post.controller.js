@@ -4,6 +4,9 @@ import jwt from "jsonwebtoken";
 // Controller to get a list of posts based on query parameters
 export const getPosts = async (req, res) => {
   const query = req.query;
+  const page = parseInt(query.page) || 1;
+  const limit = parseInt(query.limit) || 5;
+  const skip = (page - 1) * limit;
 
   try {
     // Fetching posts from the database based on the query parameters
@@ -19,10 +22,31 @@ export const getPosts = async (req, res) => {
           lte: parseInt(query.maxPrice) || undefined,
         },
       },
+      skip: skip,
+      take: limit,
+    });
+
+    // Fetching the total count of posts for pagination
+    const totalPosts = await prisma.post.count({
+      where: {
+        approved: true,
+        city: query.city || undefined,
+        type: query.type || undefined,
+        property: query.property || undefined,
+        bedroom: parseInt(query.bedroom) || undefined,
+        price: {
+          gte: parseInt(query.minPrice) || undefined,
+          lte: parseInt(query.maxPrice) || undefined,
+        },
+      },
     });
 
     // Sending a success response with the retrieved posts
-    res.status(200).json(posts);
+    res.status(200).json({
+      posts,
+      totalPages: Math.ceil(totalPosts / limit),
+      currentPage: page,
+    });
   } catch (err) {
     // Logging the error and sending a failure response
     console.log(err);
@@ -30,6 +54,7 @@ export const getPosts = async (req, res) => {
   }
 };
 
+// get single post details
 export const getPost = async (req, res) => {
   const id = req.params.id;
 
@@ -70,17 +95,27 @@ export const getPost = async (req, res) => {
         });
 
         // Allow access to the post if the user is the owner or an admin
-        if (post.userId === payload.id || payload.role === "admin" || post.approved) {
-          return res.status(200).json({ ...post, isSaved: saved ? true : false });
+        if (
+          post.userId === payload.id ||
+          payload.role === "admin" ||
+          post.approved
+        ) {
+          return res
+            .status(200)
+            .json({ ...post, isSaved: saved ? true : false });
         } else {
-          return res.status(403).json({ message: "Not authorized to view this post" });
+          return res
+            .status(403)
+            .json({ message: "Not authorized to view this post" });
         }
       });
     } else if (post.approved) {
       // Allow access to approved posts without authentication
       return res.status(200).json({ ...post, isSaved: false });
     } else {
-      return res.status(403).json({ message: "Not authorized to view this post" });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to view this post" });
     }
   } catch (err) {
     // Logging the error and sending a failure response
@@ -88,7 +123,6 @@ export const getPost = async (req, res) => {
     res.status(500).json({ message: "Failed to get post" });
   }
 };
-
 
 // Controller to add a new post
 export const addPost = async (req, res) => {
