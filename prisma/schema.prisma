@@ -73,19 +73,22 @@ model SavedPost {
 }
 
 model User {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
-  email        String         @unique
-  username     String         @unique
-  password     String
-  avatar       String?
-  createdAt    DateTime       @default(now())
-  posts        Post[]
-  savedPosts   SavedPost[]
-  chats        Chat[]         @relation(fields: [chatIDs], references: [id])
-  chatIDs      String[]       @db.ObjectId
-  notifications Notification[]
-  testimonials  Testimonial[] // Added relation to testimonials
+  id                   String         @id @default(auto()) @map("_id") @db.ObjectId
+  email                String         @unique
+  username             String         @unique
+  password             String
+  avatar               String?
+  createdAt            DateTime       @default(now())
+  posts                Post[]
+  savedPosts           SavedPost[]
+  chats                Chat[]         @relation(fields: [chatIDs], references: [id])
+  chatIDs              String[]       @db.ObjectId
+  notifications        Notification[]
+  testimonials         Testimonial[]  // Relation to testimonials
+  resetPasswordToken   String?        
+  resetPasswordExpires DateTime?
 }
+
 
 model Chat {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
