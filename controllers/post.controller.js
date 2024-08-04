@@ -4,19 +4,33 @@ import jwt from "jsonwebtoken";
 // Controller to get a list of posts based on query parameters
 export const getPosts = async (req, res) => {
   const query = req.query;
+  console.log("Received query parameters:", query);
   const page = parseInt(query.page) || 1;
   const limit = parseInt(query.limit) || 5;
   const skip = (page - 1) * limit;
+
+  const propertyStatusMap = {
+    available: "Available",
+    booked: "Booked",
+    soldout: "SoldOut"
+  };
+  
+  const propertyStatus = query.propertyStatus 
+    ? propertyStatusMap[query.propertyStatus.toLowerCase()]
+    : undefined;
 
   try {
     // Fetching posts from the database based on the query parameters
     const posts = await prisma.post.findMany({
       where: {
-        approved: true, // Ensure only approved posts are fetched
+        approved: true,
         city: query.city || undefined,
         type: query.type || undefined,
         property: query.property || undefined,
         bedroom: parseInt(query.bedroom) || undefined,
+        postDetail: {
+          propertyStatus: propertyStatus || undefined,
+        },
         price: {
           gte: parseInt(query.minPrice) || undefined,
           lte: parseInt(query.maxPrice) || undefined,
@@ -24,7 +38,12 @@ export const getPosts = async (req, res) => {
       },
       skip: skip,
       take: limit,
+      include: {
+        postDetail: true,
+      },
     });
+
+    
 
     // Fetching the total count of posts for pagination
     const totalPosts = await prisma.post.count({
@@ -34,12 +53,17 @@ export const getPosts = async (req, res) => {
         type: query.type || undefined,
         property: query.property || undefined,
         bedroom: parseInt(query.bedroom) || undefined,
+        postDetail: {
+          propertyStatus: propertyStatus || undefined,
+        },
         price: {
           gte: parseInt(query.minPrice) || undefined,
           lte: parseInt(query.maxPrice) || undefined,
         },
       },
     });
+
+   
 
     // Sending a success response with the retrieved posts
     res.status(200).json({
@@ -48,11 +72,15 @@ export const getPosts = async (req, res) => {
       currentPage: page,
     });
   } catch (err) {
-    // Logging the error and sending a failure response
     console.log(err);
     res.status(500).json({ message: "Failed to get posts" });
   }
 };
+
+
+
+
+
 
 // get single post details
 export const getPost = async (req, res) => {

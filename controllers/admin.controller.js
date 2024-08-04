@@ -49,10 +49,18 @@ export const shouldBeAdmin = async (req, res, next) => {
 
 
 
-// Controller to get all users and their posts
+// Controller to get all users and their posts with pagination
 export const getAllUsersAndPosts = async (req, res) => {
-    try {
-      const users = await prisma.user.findMany({
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 5;
+  const offset = (page - 1) * limit;
+
+  try {
+    const [totalUsers, users] = await prisma.$transaction([
+      prisma.user.count(),
+      prisma.user.findMany({
+        skip: offset,
+        take: limit,
         include: {
           posts: {
             include: {
@@ -60,13 +68,21 @@ export const getAllUsersAndPosts = async (req, res) => {
             },
           },
         },
-      });
-      res.json(users);
-    } catch (error) {
-      console.log("Error retrieving users and posts:", error);
-      res.status(500).json({ error: "Server error" });
-    }
-  };
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.json({
+      users,
+      totalPages,
+      currentPage: page,
+    });
+  } catch (error) {
+    console.log("Error retrieving users and posts:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
 // Controller to approve a post
 export const approvePost = async (req, res) => {
