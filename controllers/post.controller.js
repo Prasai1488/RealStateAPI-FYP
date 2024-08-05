@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 // Controller to get a list of posts based on query parameters
 export const getPosts = async (req, res) => {
   const query = req.query;
-  console.log("Received query parameters:", query);
+  // console.log("Received query parameters:", query);
   const page = parseInt(query.page) || 1;
   const limit = parseInt(query.limit) || 5;
   const skip = (page - 1) * limit;

@@ -76,8 +76,6 @@ export const deleteUser = async (req, res) => {
   const id = req.params.id;
   const tokenUserId = req.userId;
 
- 
-
   if (id !== tokenUserId) {
     console.log("Not Authorized");
     return res.status(403).json({ message: "Not Authorized!" });
@@ -132,15 +130,19 @@ export const deleteUser = async (req, res) => {
       where: { userId: id },
     });
 
-    // Step 7: Delete the user
+    // Step 7: Delete related testimonials
+    await prisma.testimonial.deleteMany({
+      where: { userId: id },
+    });
+
+    // Step 8: Delete the user
     await prisma.user.delete({
       where: { id },
     });
 
-    
     res.status(200).json({ message: "User deleted" });
   } catch (err) {
-    
+    console.error(err);
     res.status(500).json({ message: "Failed to delete user!" });
   }
 };
@@ -188,23 +190,36 @@ export const savePost = async (req, res) => {
 export const profilePosts = async (req, res) => {
   const tokenUserId = req.userId;
   try {
+    // Fetch user posts with post details
     const userPosts = await prisma.post.findMany({
       where: { userId: tokenUserId },
-    });
-    const saved = await prisma.savedPost.findMany({
-      where: { userId: tokenUserId },
       include: {
-        post: true,
+        postDetail: true,
       },
     });
 
+    // Fetch saved posts with post details
+    const saved = await prisma.savedPost.findMany({
+      where: { userId: tokenUserId },
+      include: {
+        post: {
+          include: {
+            postDetail: true,
+          },
+        },
+      },
+    });
+
+    // Extract posts from saved posts
     const savedPosts = saved.map((item) => item.post);
+
     res.status(200).json({ userPosts, savedPosts });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Failed to get profile posts!" });
   }
 };
+
 
 export const getNotificationNumber = async (req, res) => {
   const tokenUserId = req.userId;

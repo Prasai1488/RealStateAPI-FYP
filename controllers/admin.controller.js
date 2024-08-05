@@ -141,11 +141,13 @@ export const rejectPost = async (req, res) => {
   };
 
 
-  // Controller to delete a user and their related data
+ // Controller to delete a user and their related data
 export const deleteUser = async (req, res) => {
   const id = req.params.id;
 
   try {
+    // console.log(`Starting to delete user with ID: ${id}`);
+
     // Step 1: Delete saved posts referencing the user's posts
     const userPosts = await prisma.post.findMany({
       where: { userId: id },
@@ -153,20 +155,24 @@ export const deleteUser = async (req, res) => {
     });
 
     const userPostIds = userPosts.map(post => post.id);
+    // console.log(`Found ${userPostIds.length} posts by user`);
 
     await prisma.savedPost.deleteMany({
       where: { postId: { in: userPostIds } },
     });
+    // console.log(`Deleted saved posts referencing user's posts`);
 
     // Step 2: Delete related saved posts for the user
     await prisma.savedPost.deleteMany({
       where: { userId: id },
     });
+    // console.log(`Deleted user's saved posts`);
 
     // Step 3: Delete related PostDetail records
     await prisma.postDetail.deleteMany({
       where: { postId: { in: userPostIds } },
     });
+    // console.log(`Deleted related PostDetail records`);
 
     // Step 4: Delete related messages
     const userChats = await prisma.chat.findMany({
@@ -177,10 +183,12 @@ export const deleteUser = async (req, res) => {
     });
 
     const chatIds = userChats.map(chat => chat.id);
+    // console.log(`Found ${chatIds.length} chats involving user`);
 
     await prisma.message.deleteMany({
       where: { chatId: { in: chatIds } },
     });
+    // console.log(`Deleted related messages`);
 
     // Step 5: Delete related chats
     await prisma.chat.deleteMany({
@@ -188,16 +196,25 @@ export const deleteUser = async (req, res) => {
         userIDs: { has: id }
       },
     });
+    // console.log(`Deleted related chats`);
 
     // Step 6: Delete related posts
     await prisma.post.deleteMany({
       where: { userId: id },
     });
+    // console.log(`Deleted related posts`);
 
-    // Step 7: Delete the user
+    // Step 7: Delete related testimonials
+    await prisma.testimonial.deleteMany({
+      where: { userId: id },
+    });
+    // console.log(`Deleted related testimonials`);
+
+    // Step 8: Delete the user
     await prisma.user.delete({
       where: { id },
     });
+    // console.log(`Deleted user with ID: ${id}`);
 
     res.status(200).json({ message: "User and their related data deleted" });
   } catch (err) {
@@ -205,6 +222,7 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: "Failed to delete user!" });
   }
 };
+
   
 
 // Controller to delete a post by ID
